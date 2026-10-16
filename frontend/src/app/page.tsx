@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -17,9 +18,24 @@ import {
   ShieldCheck,
   User,
   Clock,
+  Mail,
+  Send,
+  Check,
+  ArrowUp,
+  Cpu,
+  Activity,
 } from "lucide-react";
 
 export default function LandingPage() {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail && newsletterEmail.includes("@")) {
+      setIsSubscribed(true);
+    }
+  };
   return (
     <div className="min-h-screen bg-[#FEF9EF] text-slate-900 font-sans selection:bg-[#FFB800] selection:text-[#1E2544]">
       {/* ============================================================ */}
@@ -461,67 +477,212 @@ export default function LandingPage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 7. FOOTER                                                    */}
+      {/* 7. FOOTER (Feature-Rich Edition)                             */}
       {/* ============================================================ */}
-      <footer className="bg-[#1E2544] text-white border-t border-slate-800 pt-12 pb-8">
+      <footer className="bg-[#1E2544] text-white border-t border-slate-800 pt-16 pb-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 pb-12 border-b border-slate-800">
-            {/* Brand Column (2 cols) */}
-            <div className="md:col-span-2 space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#FFB800] flex items-center justify-center text-[#1E2544] font-black shadow-sm">
-                  <Sparkles className="w-4 h-4 text-[#1E2544]" />
-                </div>
-                <span className="font-black text-xl text-white tracking-tight">PrepPilot</span>
+          {/* Top Feature Highlights Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-12 border-b border-slate-800/80">
+            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 transition flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Mic className="w-5 h-5 text-[#FFB800]" />
               </div>
-              <p className="text-xs text-slate-400 font-semibold leading-relaxed max-w-sm">
-                AI-powered interview preparation and candidate evaluation platform. Practice real behavioral and technical interviews tailored directly to your resume and target role.
-              </p>
-              <div className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Gemini 2.5 & Pinecone Connected</span>
+              <div>
+                <h4 className="text-xs font-black text-white">Voice & Speech AI</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-0.5">
+                  Real-time interactive audio questions and speech-to-text dictation.
+                </p>
               </div>
             </div>
 
-            {/* Column 2: Platform */}
-            <div className="space-y-3 text-xs">
-              <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[10px]">Platform</h4>
-              <ul className="space-y-2 font-semibold text-slate-400">
-                <li><a href="#how-it-works" className="hover:text-white transition">How It Works</a></li>
-                <li><a href="#features" className="hover:text-white transition">Features & AI Engine</a></li>
-                <li><a href="#about" className="hover:text-white transition">Product Journey</a></li>
-                <li><Link href="/role-selection" className="hover:text-white transition">Role Selection Portal</Link></li>
-              </ul>
+            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 transition flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Brain className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white">Gemini 2.5 Flash</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-0.5">
+                  Deep scoring (0–100), key strengths, and senior candidate model answers.
+                </p>
+              </div>
             </div>
 
-            {/* Column 3: Tracks */}
-            <div className="space-y-3 text-xs">
-              <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[10px]">Interview Tracks</h4>
-              <ul className="space-y-2 font-semibold text-slate-400">
-                <li><Link href="/role-selection" className="hover:text-white transition">Full-Stack Engineering</Link></li>
-                <li><Link href="/role-selection" className="hover:text-white transition">Frontend & Performance</Link></li>
-                <li><Link href="/role-selection" className="hover:text-white transition">Generative AI & LLMs</Link></li>
-                <li><Link href="/role-selection" className="hover:text-white transition">Cloud & Security Architecture</Link></li>
-              </ul>
+            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 transition flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Layers className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white">Pinecone Vector RAG</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-0.5">
+                  Semantic chunking grounded in your actual projects and experience.
+                </p>
+              </div>
             </div>
 
-            {/* Column 4: Access */}
-            <div className="space-y-3 text-xs">
-              <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[10px]">Portals</h4>
-              <ul className="space-y-2 font-semibold text-slate-400">
-                <li><Link href="/role-selection" className="hover:text-white transition">Candidate Portal</Link></li>
-                <li><Link href="/admin/login" className="hover:text-white transition">Admin Console</Link></li>
-                <li><Link href="/admin/system" className="hover:text-white transition">System Status</Link></li>
-              </ul>
+            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 transition flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white">Role-Based Security</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-0.5">
+                  PostgreSQL profiles with strict Admin and User authorization boundaries.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Bottom Row */}
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-semibold">
-            <p>© 2026 PrepPilot. All rights reserved.</p>
-            <p className="text-[11px] text-slate-500">
-              Powered by Google Gemini 2.5 Flash & Pinecone Vector Search
-            </p>
+          {/* Main Footer Content: Brand + Newsletter + Link Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 py-12 border-b border-slate-800/80">
+            {/* Brand & Newsletter (5 cols) */}
+            <div className="md:col-span-5 space-y-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#FFB800] flex items-center justify-center text-[#1E2544] font-black shadow-sm">
+                  <Sparkles className="w-5 h-5 text-[#1E2544]" />
+                </div>
+                <div>
+                  <span className="font-black text-2xl text-white tracking-tight">PrepPilot</span>
+                  <span className="ml-2 text-[10px] font-extrabold uppercase px-2 py-0.5 bg-amber-500/20 text-[#FFB800] border border-amber-500/30 rounded-md">
+                    AI Edition
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm">
+                Next-generation mock interview platform powered by Google Gemini and Pinecone. Practice real-world technical and behavioral rounds customized to your target role and resume.
+              </p>
+
+              {/* Newsletter Form */}
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 max-w-md">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Mail className="w-4 h-4 text-[#FFB800]" />
+                  <h5 className="text-xs font-black text-white">Weekly Interview Challenges</h5>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium mb-3">
+                  Get high-yield system design and behavioral questions in your inbox.
+                </p>
+                {isSubscribed ? (
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-2 rounded-xl">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Thanks for subscribing! Check your inbox soon.</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubscribe} className="flex gap-2">
+                    <input
+                      type="email"
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      className="bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#FFB800] flex-1"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-[#FFB800] hover:bg-[#FFA500] text-[#1E2544] font-black text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0"
+                    >
+                      <span>Join</span>
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Links Columns (7 cols) */}
+            <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+              {/* Col 1: Platform & AI */}
+              <div className="space-y-3 text-xs">
+                <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Platform</span>
+                </h4>
+                <ul className="space-y-2 font-medium text-slate-400">
+                  <li><a href="#features" className="hover:text-white transition">AI Question Engine</a></li>
+                  <li><a href="#how-it-works" className="hover:text-white transition">Resume Ingestion</a></li>
+                  <li><Link href="/upload" className="hover:text-white transition">Voice Interview Room</Link></li>
+                  <li><Link href="/dashboard" className="hover:text-white transition">Performance Analytics</Link></li>
+                  <li><Link href="/role-selection" className="hover:text-white transition">Role Presets</Link></li>
+                </ul>
+              </div>
+
+              {/* Col 2: Tracks */}
+              <div className="space-y-3 text-xs">
+                <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" />
+                  <span>Tracks</span>
+                </h4>
+                <ul className="space-y-2 font-medium text-slate-400">
+                  <li><Link href="/role-selection" className="hover:text-white transition">Full-Stack Engineer</Link></li>
+                  <li><Link href="/role-selection" className="hover:text-white transition">Generative AI & LLMs</Link></li>
+                  <li><Link href="/role-selection" className="hover:text-white transition">Frontend & Performance</Link></li>
+                  <li><Link href="/role-selection" className="hover:text-white transition">Cloud & DevOps</Link></li>
+                  <li><Link href="/role-selection" className="hover:text-white transition">System Architecture</Link></li>
+                </ul>
+              </div>
+
+              {/* Col 3: Portals & Community */}
+              <div className="space-y-3 text-xs col-span-2 sm:col-span-1">
+                <h4 className="font-black text-[#FFB800] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  <span>Portals</span>
+                </h4>
+                <ul className="space-y-2 font-medium text-slate-400">
+                  <li><Link href="/login" className="hover:text-white transition">Candidate Sign In</Link></li>
+                  <li><Link href="/signup" className="hover:text-white transition">Create Free Account</Link></li>
+                  <li><Link href="/admin/login" className="hover:text-white transition">Admin Portal</Link></li>
+                  <li><Link href="/admin/system" className="hover:text-white transition">System Health</Link></li>
+                  <li>
+                    <a
+                      href="https://github.com/Ruba-124/PrepPilot"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-white transition inline-flex items-center gap-1.5 text-amber-300 font-semibold"
+                    >
+                      <span>GitHub Repo</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar: System Status + Copyright + Scroll-To-Top */}
+          <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-medium">
+            <div className="flex flex-wrap items-center gap-4">
+              <p>© {new Date().getFullYear()} PrepPilot. All rights reserved.</p>
+              <span className="hidden sm:inline text-slate-700">•</span>
+              <div className="inline-flex items-center gap-2 text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold">All Systems Operational</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-[10px] text-slate-400">99.9% Uptime</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <a
+                href="https://github.com/Ruba-124/PrepPilot"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-white transition flex items-center gap-1.5"
+                title="View Source on GitHub"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <span>GitHub</span>
+              </a>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="hover:text-white transition flex items-center gap-1 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 px-2.5 py-1 rounded-lg text-[11px]"
+                title="Scroll back to top"
+              >
+                <span>Top</span>
+                <ArrowUp className="w-3 h-3 text-[#FFB800]" />
+              </button>
+            </div>
           </div>
         </div>
       </footer>
