@@ -168,20 +168,31 @@ export const storage = {
     return local.profiles.find((p) => p.id === userId) || null;
   },
 
-  async saveResumeText(userId: string, resumeText: string): Promise<void> {
+  async saveResumeText(
+    userId: string,
+    resumeText: string,
+    metadata?: { full_name?: string; target_role?: string }
+  ): Promise<void> {
     if (supabaseClient) {
+      const payload: any = { id: userId, resume_text: resumeText };
+      if (metadata?.full_name) payload.full_name = metadata.full_name;
+      if (metadata?.target_role) payload.target_role = metadata.target_role;
       await supabaseClient
         .from("profiles")
-        .upsert({ id: userId, resume_text: resumeText }, { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" });
       return;
     }
     const local = loadLocalStore();
     const existing = local.profiles.find((p) => p.id === userId);
     if (existing) {
       existing.resume_text = resumeText;
+      if (metadata?.full_name && !existing.full_name) existing.full_name = metadata.full_name;
+      if (metadata?.target_role && !existing.target_role) existing.target_role = metadata.target_role;
     } else {
       local.profiles.push({
         id: userId,
+        full_name: metadata?.full_name || "Candidate",
+        target_role: metadata?.target_role || "Software Engineer",
         resume_text: resumeText,
         created_at: new Date().toISOString(),
       });

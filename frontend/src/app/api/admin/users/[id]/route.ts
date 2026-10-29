@@ -27,6 +27,19 @@ export async function GET(
       return NextResponse.json({ error: "User profile not found." }, { status: 404 });
     }
 
+    // Fetch auth user for real email and metadata if adminDb is present
+    let authUser: any = null;
+    if (adminDb) {
+      try {
+        const { data: aUser } = await adminDb.auth.admin.getUserById(userId);
+        authUser = aUser?.user || null;
+      } catch {}
+    }
+
+    const resolvedName = profile.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || "Unnamed User";
+    const resolvedEmail = authUser?.email || profile.email || `${resolvedName.toLowerCase().replace(/\s+/g, ".")}@preppilot.com`;
+    const resolvedTargetRole = profile.target_role || authUser?.user_metadata?.target_role || "General Candidate";
+
     // Fetch user sessions & answers
     const { data: sessions } = await supabase
       .from("sessions")
@@ -62,12 +75,13 @@ export async function GET(
       success: true,
       user: {
         id: profile.id,
-        fullName: profile.full_name || "Unnamed User",
-        targetRole: profile.target_role || "General",
-        role: profile.role || "user",
+        fullName: resolvedName,
+        email: resolvedEmail,
+        targetRole: resolvedTargetRole,
+        role: profile.role || authUser?.user_metadata?.role || "user",
         resumeText: profile.resume_text,
         resumeUrl: profile.resume_url,
-        createdAt: profile.created_at,
+        createdAt: profile.created_at || authUser?.created_at,
         status: "active",
         metrics: {
           totalSessions: userSessions.length,

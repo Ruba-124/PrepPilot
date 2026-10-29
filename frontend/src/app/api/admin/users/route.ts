@@ -19,6 +19,54 @@ export async function GET(request: NextRequest) {
     const adminDb = getSupabaseAdminClient();
     const supabase = adminDb || (await createSupabaseServerClient());
 
+    // 1. Fetch all Auth users to resolve real emails and ensure profile consistency
+    const authMap = new Map<string, any>();
+    if (adminDb) {
+      try {
+        const { data: authData } = await adminDb.auth.admin.listUsers({ perPage: 1000 });
+        if (authData?.users) {
+          authData.users.forEach((u) => authMap.set(u.id, u));
+
+          // Auto-sync any auth user whose profile row is missing or has null full_name
+          const { data: currentProfiles } = await adminDb
+            .from("profiles")
+            .select("id, full_name, target_role, role");
+          const existingProfileMap = new Map((currentProfiles || []).map((p) => [p.id, p]));
+
+          const toSync: any[] = [];
+          for (const u of authData.users) {
+            const p = existingProfileMap.get(u.id);
+            const metaName = u.user_metadata?.full_name || u.user_metadata?.name;
+            const metaTarget = u.user_metadata?.target_role;
+            const metaRole = u.user_metadata?.role || "user";
+
+            if (!p) {
+              toSync.push({
+                id: u.id,
+                full_name: metaName || u.email?.split("@")[0] || "Candidate",
+                target_role: metaTarget || "Full Stack Engineer",
+                role: metaRole,
+                created_at: u.created_at || new Date().toISOString(),
+              });
+            } else if (!p.full_name && metaName) {
+              toSync.push({
+                id: u.id,
+                full_name: metaName,
+                target_role: p.target_role || metaTarget || "Full Stack Engineer",
+                role: p.role || metaRole,
+              });
+            }
+          }
+
+          if (toSync.length > 0) {
+            await adminDb.from("profiles").upsert(toSync, { onConflict: "id" });
+          }
+        }
+      } catch (authErr) {
+        console.warn("Could not list auth users for email resolution:", authErr);
+      }
+    }
+
     let query = supabase.from("profiles").select("*", { count: "exact" });
 
     if (roleFilter !== "all" && (roleFilter === "user" || roleFilter === "admin")) {
@@ -55,22 +103,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const formattedUsers = (profiles || []).map((p) => ({
-      id: p.id,
-      full_name: p.full_name || "Unnamed Candidate",
-      name: p.full_name || "Unnamed Candidate",
-      email: p.email || `${p.full_name ? p.full_name.toLowerCase().replace(/\s+/g, ".") : p.id.slice(0, 8)}@preppilot.com`,
-      role: p.role || "user",
-      target_role: p.target_role || "General Candidate",
-      targetRole: p.target_role || "General Candidate",
-      status: "Active",
-      created_at: p.created_at || new Date().toISOString(),
-      joinedAt: p.created_at || new Date().toISOString(),
-      programs: sessionMap[p.id]?.count ? 1 : 0,
-      progress: sessionMap[p.id]?.count ? 75 : 0,
-      interviewsCount: sessionMap[p.id]?.count || 0,
-      resumeUrl: p.resume_url,
-    }));
+    const formattedUsers = (profiles || []).map((p) => {
+      const authUser = authMap.get(p.id);
+      const name = p.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || "Unnamed Candidate";
+      const email = authUser?.email || p.email || `${name.toLowerCase().replace(/\s+/g, ".")}@preppilot.com`;
+      const targetRole = p.target_role || authUser?.user_metadata?.target_role || "General Candidate";
+      const role = p.role || authUser?.user_metadata?.role || "user";
+
+      return {
+        id: p.id,
+        full_name: name,
+        name: name,
+        email: email,
+        role: role,
+        target_role: targetRole,
+        targetRole: targetRole,
+        status: "Active",
+        created_at: p.created_at || authUser?.created_at || new Date().toISOString(),
+        joinedAt: p.created_at || authUser?.created_at || new Date().toISOString(),
+        programs: sessionMap[p.id]?.count ? 1 : 0,
+        progress: sessionMap[p.id]?.count ? 75 : 0,
+        interviewsCount: sessionMap[p.id]?.count || 0,
+        resumeUrl: p.resume_url,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -142,4 +198,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

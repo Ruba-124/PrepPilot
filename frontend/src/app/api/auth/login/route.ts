@@ -54,12 +54,40 @@ export async function POST(request: NextRequest) {
           profile = data;
         }
 
+        const resolvedName =
+          profile?.full_name ||
+          authData.user.user_metadata?.full_name ||
+          authData.user.user_metadata?.name ||
+          cleanEmail.split("@")[0] ||
+          "User";
+        const resolvedTargetRole =
+          profile?.target_role ||
+          authData.user.user_metadata?.target_role ||
+          "Full Stack Engineer";
+        const resolvedRole =
+          profile?.role === "admin" || authData.user.user_metadata?.role === "admin"
+            ? "admin"
+            : "user";
+
+        // Auto-heal profile in public.profiles table if missing or incomplete
+        if (adminDb && (!profile || !profile.full_name || !profile.target_role)) {
+          await adminDb.from("profiles").upsert(
+            {
+              id: userId,
+              full_name: resolvedName,
+              target_role: resolvedTargetRole,
+              role: resolvedRole,
+            },
+            { onConflict: "id" }
+          );
+        }
+
         authenticatedUser = {
           id: userId,
           email: cleanEmail,
-          fullName: profile?.full_name || authData.user.user_metadata?.full_name || "User",
-          targetRole: profile?.target_role || authData.user.user_metadata?.target_role || "Software Engineer",
-          role: profile?.role === "admin" ? "admin" : "user",
+          fullName: resolvedName,
+          targetRole: resolvedTargetRole,
+          role: resolvedRole,
         };
       }
     } catch (err) {
@@ -76,10 +104,12 @@ export async function POST(request: NextRequest) {
 
       if (profiles && profiles.length > 0) {
         // Find profile matching email handle or first candidate
-        const match = profiles.find((p) =>
-          p.full_name?.toLowerCase().includes(cleanEmail.split("@")[0]) ||
-          cleanEmail.includes(p.full_name?.toLowerCase().split(" ")[0] || "xyz")
-        ) || profiles[0];
+        const match =
+          profiles.find(
+            (p) =>
+              p.full_name?.toLowerCase().includes(cleanEmail.split("@")[0]) ||
+              cleanEmail.includes(p.full_name?.toLowerCase().split(" ")[0] || "xyz")
+          ) || profiles[0];
 
         if (match) {
           authenticatedUser = {

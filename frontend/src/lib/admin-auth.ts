@@ -42,7 +42,8 @@ export function getSupabaseAdminClient() {
 }
 
 /**
- * Ensures that a corresponding row exists in public.profiles for an authenticated user.
+ * Ensures that a corresponding row exists in public.profiles for an authenticated user,
+ * repairing missing or null fields from user metadata.
  */
 export async function ensureUserProfile(user: {
   id: string;
@@ -60,7 +61,29 @@ export async function ensureUserProfile(user: {
       .eq("id", user.id)
       .single();
 
-    if (existing) return existing;
+    if (existing) {
+      if (!existing.full_name || !existing.target_role) {
+        const fullName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          existing.full_name ||
+          "User";
+        const targetRole =
+          user.user_metadata?.target_role ||
+          existing.target_role ||
+          "Full Stack Engineer";
+
+        const { data: updated } = await adminClient
+          .from("profiles")
+          .update({ full_name: fullName, target_role: targetRole })
+          .eq("id", user.id)
+          .select()
+          .single();
+        return updated || existing;
+      }
+      return existing;
+    }
 
     // 2. If missing, auto-create profile row
     const fullName =
@@ -69,7 +92,7 @@ export async function ensureUserProfile(user: {
       user.email?.split("@")[0] ||
       "User";
 
-    const targetRole = user.user_metadata?.target_role || "General Candidate";
+    const targetRole = user.user_metadata?.target_role || "Full Stack Engineer";
     const requestedRole = user.user_metadata?.role || "user";
 
     const newProfile = {
@@ -185,7 +208,7 @@ export async function logAdminAuditAction(params: {
       admin_user_id: params.adminUserId,
       action: params.action,
       target_type: params.targetType || null,
-      target_id: params.targetId || null,
+      targetId: params.targetId || null,
       metadata: params.metadata || {},
       created_at: new Date().toISOString(),
     });

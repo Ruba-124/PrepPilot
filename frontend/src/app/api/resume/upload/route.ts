@@ -49,7 +49,10 @@ export async function POST(req: Request) {
       fileName: file.name,
     });
 
-    await storage.saveResumeText(userId, resumeText);
+    await storage.saveResumeText(userId, resumeText, {
+      full_name: authenticated?.fullName,
+      target_role: authenticated?.targetRole,
+    });
 
     return NextResponse.json({
       ok: true,
