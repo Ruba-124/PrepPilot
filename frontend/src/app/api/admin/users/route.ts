@@ -155,45 +155,124 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { fullName, targetRole, role, email } = body;
+    const { fullName, targetRole, role, email, password } = body;
 
-    if (!fullName) {
+    if (!fullName || !fullName.trim()) {
       return NextResponse.json({ error: "Full name is required." }, { status: 400 });
     }
 
-    const adminDb = getSupabaseAdminClient();
-    const supabase = adminDb || (await createSupabaseServerClient());
+    const cleanName = fullName.trim();
+    const cleanRole = role === "admin" ? "admin" : "user";
+    const cleanTargetRole = targetRole?.trim() || "Software Engineer";
 
-    const newProfileId = crypto.randomUUID();
+    const adminDb = getSupabaseAdminClient();
+    if (!adminDb) {
+      return NextResponse.json(
+        { error: "Supabase Admin Service Role client is not configured." },
+        { status: 500 }
+      );
+    }
+
+    // Determine email address
+    let userEmail = email?.trim()?.toLowerCase();
+    if (!userEmail) {
+      const slug = cleanName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, ".")
+        .replace(/\.+/g, ".")
+        .replace(/^\.|\.$/g, "");
+      userEmail = `${slug || "candidate"}.${Date.now().toString().slice(-4)}@preppilot.com`;
+    }
+
+    const userPassword = password?.trim() || `PrepPilot@${new Date().getFullYear()}!`;
+
+    // 1. Provision user in Supabase Auth so profiles foreign key (auth.users.id) is satisfied
+    let userId: string;
+
+    const { data: authCreated, error: authErr } = await adminDb.auth.admin.createUser({
+      email: userEmail,
+      password: userPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: cleanName,
+        name: cleanName,
+        target_role: cleanTargetRole,
+        role: cleanRole,
+      },
+    });
+
+    if (authErr) {
+      // Check if user already exists in auth.users
+      if (
+        authErr.message?.toLowerCase().includes("already registered") ||
+        authErr.message?.toLowerCase().includes("already been registered") ||
+        authErr.code === "email_exists"
+      ) {
+        const { data: existingList } = await adminDb.auth.admin.listUsers();
+        const existingUser = existingList?.users?.find(
+          (u) => u.email?.toLowerCase() === userEmail.toLowerCase()
+        );
+        if (existingUser) {
+          userId = existingUser.id;
+        } else {
+          throw authErr;
+        }
+      } else {
+        throw authErr;
+      }
+    } else if (authCreated?.user) {
+      userId = authCreated.user.id;
+    } else {
+      throw new Error("Failed to create authentication user.");
+    }
+
+    // 2. Upsert profile in public.profiles with valid foreign key ID
     const newProfile = {
-      id: newProfileId,
-      full_name: fullName,
-      target_role: targetRole || "Software Engineer",
-      role: role === "admin" ? "admin" : "user",
+      id: userId,
+      full_name: cleanName,
+      target_role: cleanTargetRole,
+      role: cleanRole,
       created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase.from("profiles").insert(newProfile).select().single();
+    const { data: profileData, error: profileErr } = await adminDb
+      .from("profiles")
+      .upsert(newProfile, { onConflict: "id" })
+      .select()
+      .single();
 
-    if (error) throw error;
+    if (profileErr) throw profileErr;
 
+    // 3. Log audit action
     await logAdminAuditAction({
       adminUserId: auth.user!.id,
       action: "CREATE_USER_PROFILE",
       targetType: "user",
-      targetId: newProfileId,
-      metadata: { fullName, role, targetRole },
+      targetId: userId,
+      metadata: { fullName: cleanName, email: userEmail, role: cleanRole, targetRole: cleanTargetRole },
     });
 
     return NextResponse.json({
       success: true,
-      message: "User profile created in database.",
-      user: data || newProfile,
+      message: "User profile created successfully.",
+      user: {
+        id: userId,
+        email: userEmail,
+        full_name: cleanName,
+        targetRole: cleanTargetRole,
+        role: cleanRole,
+        status: "Active",
+        created_at: newProfile.created_at,
+        joinedAt: newProfile.created_at,
+        programs: 0,
+        progress: 0,
+        interviewsCount: 0,
+      },
     });
   } catch (err: any) {
     console.error("Admin create user API error:", err);
     return NextResponse.json(
-      { error: "Failed to create user profile", details: err.message },
+      { error: err.message || "Failed to create user profile", details: err.message },
       { status: 500 }
     );
   }

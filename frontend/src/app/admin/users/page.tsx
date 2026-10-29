@@ -27,8 +27,11 @@ export default function AdminUsersPage() {
   // Add User modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [targetRole, setTargetRole] = useState("Software Engineer");
   const [role, setRole] = useState<"user" | "admin">("user");
+  const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -59,24 +62,28 @@ export default function AdminUsersPage() {
     e.preventDefault();
     if (!fullName.trim()) return;
     setSaving(true);
+    setModalError(null);
 
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, targetRole, role }),
+        body: JSON.stringify({ fullName, targetRole, role, email, password }),
       });
       const data = await res.json();
 
       if (res.ok && data.success) {
         setShowAddModal(false);
         setFullName("");
+        setEmail("");
+        setPassword("");
+        setModalError(null);
         fetchUsers();
       } else {
-        alert(data.error || "Failed to create user.");
+        setModalError(data.error || "Failed to create user profile.");
       }
     } catch {
-      alert("Error creating user.");
+      setModalError("Network error while creating user profile.");
     } finally {
       setSaving(false);
     }
@@ -97,7 +104,10 @@ export default function AdminUsersPage() {
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setModalError(null);
+            setShowAddModal(true);
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -232,15 +242,37 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
           <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 p-6 shadow-2xl space-y-4 font-sans">
             <h2 className="text-lg font-black text-slate-900">Add New User Profile</h2>
-            <form onSubmit={handleAddUser} className="space-y-4 text-xs">
+
+            {modalError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs font-bold text-red-700">
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddUser} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Ruba Muntaha"
+                  placeholder="e.g. Sakshi Sharma"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. sakshi@example.com (auto-generated if empty)"
                   className="w-full rounded-xl border border-slate-300 p-2.5 outline-none focus:border-blue-600"
                 />
               </div>
@@ -291,4 +323,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
