@@ -214,7 +214,7 @@ export default function UserDashboardPage() {
           </p>
           <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/60 mb-2">
             <p className="text-xs font-extrabold text-slate-900 truncate">{fullName}</p>
-            <p className="text-[10px] font-semibold text-blue-600 truncate">{data?.user?.targetRole || "Candidate"}</p>
+
           </div>
           <button
             onClick={handleSignOut}
@@ -269,7 +269,10 @@ export default function UserDashboardPage() {
                 Welcome back, {fullName} 👋
               </h1>
               <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                Target Track: <strong className="text-blue-700 font-extrabold">{data?.user?.targetRole || "Software Engineer"}</strong> · Real Database Analytics Active
+                {data?.user?.targetRole ? (
+                  <>Target Track: <strong className="text-blue-700 font-extrabold">{data.user.targetRole}</strong> · </>
+                ) : null}
+                Real Database Analytics Active
               </p>
             </div>
             <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-xs self-start sm:self-auto flex items-center gap-1.5">

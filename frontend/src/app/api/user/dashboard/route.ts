@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       authenticated?.fullName ||
       profile?.full_name ||
       "Candidate";
-    const targetRole = profile?.target_role || authenticated?.targetRole || "Software Engineer";
+    const targetRole = profile?.target_role || authenticated?.targetRole || "";
 
     // 2. Fetch ONLY this candidate's sessions from Supabase PostgreSQL
     let allSessions: any[] = [];

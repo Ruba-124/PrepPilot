@@ -85,7 +85,7 @@ export async function getAuthenticatedUser(
           profile.target_role ||
           parsedFromCookie?.target_role ||
           parsedFromCookie?.user_metadata?.target_role ||
-          "Software Engineer";
+          "";
 
         return {
           id: profile.id,
@@ -110,7 +110,7 @@ export async function getAuthenticatedUser(
         id: parsedFromCookie.id,
         email: parsedFromCookie.email || "user@example.com",
         fullName: resolvedName,
-        targetRole: parsedFromCookie.target_role || parsedFromCookie.user_metadata?.target_role || "Software Engineer",
+        targetRole: parsedFromCookie.target_role || parsedFromCookie.user_metadata?.target_role || "",
         role: parsedFromCookie.role === "admin" ? "admin" : "user",
       };
     }

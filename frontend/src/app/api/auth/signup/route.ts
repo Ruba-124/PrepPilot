@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = fullName.trim();
-    const cleanRole = targetRole?.trim() || "Software Engineer";
+    const cleanRole = targetRole?.trim() || null;
 
     const adminDb = getSupabaseAdminClient();
     let userId: string = "";

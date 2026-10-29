@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
 import { ArrowLeft, Laptop, Sparkles } from "lucide-react";
 
 export default function UserSignupPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
-  const [targetRole, setTargetRole] = useState("Full Stack Engineer");
+  const [targetRole, setTargetRole] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +27,7 @@ export default function UserSignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, targetRole, email, password }),
+        body: JSON.stringify({ fullName, targetRole: targetRole.trim(), email, password }),
       });
       const data = await res.json();
 
@@ -114,6 +113,19 @@ export default function UserSignupPage() {
                   placeholder="e.g. Harsh Singh"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50/50 px-3.5 py-2 text-xs text-gray-900 font-semibold placeholder-gray-400 focus:bg-white focus:border-[#2563EB] focus:outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#1E2544] mb-1">
+                  Target Position / Role <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Software Engineer, Frontend Dev (optional)"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50/50 px-3.5 py-2 text-xs text-gray-900 font-semibold placeholder-gray-400 focus:bg-white focus:border-[#2563EB] focus:outline-none transition"
                 />
               </div>
