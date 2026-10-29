@@ -277,3 +277,51 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAdminUser();
+  if (!auth.authorized) {
+    return NextResponse.json({ error: auth.error }, { status: auth.statusCode });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "User ID is required." }, { status: 400 });
+    }
+
+    if (id === auth.user?.id) {
+      return NextResponse.json({ error: "You cannot delete your own admin account." }, { status: 400 });
+    }
+
+    const adminDb = getSupabaseAdminClient();
+    if (!adminDb) {
+      return NextResponse.json({ error: "Supabase admin client not available." }, { status: 500 });
+    }
+
+    // Clean up dependent records
+    await adminDb.from("sessions").delete().eq("user_id", id);
+    await adminDb.from("program_enrollments").delete().eq("user_id", id);
+    await adminDb.from("profiles").delete().eq("id", id);
+
+    // Delete from auth.users
+    await adminDb.auth.admin.deleteUser(id);
+
+    await logAdminAuditAction({
+      adminUserId: auth.user!.id,
+      action: "DELETE_USER",
+      targetType: "user",
+      targetId: id,
+    });
+
+    return NextResponse.json({ success: true, message: "User deleted successfully." });
+  } catch (err: any) {
+    console.error("Delete user API error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to delete user", details: err.message },
+      { status: 500 }
+    );
+  }
+}

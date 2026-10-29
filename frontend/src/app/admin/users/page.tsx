@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Search, Plus, MoreHorizontal, UserCheck, ShieldAlert, ArrowRight } from "lucide-react";
+import { Search, Plus, MoreHorizontal, UserCheck, ShieldAlert, ArrowRight, Trash2 } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -86,6 +86,27 @@ export default function AdminUsersPage() {
       setModalError("Network error while creating user profile.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteUser(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+      } else {
+        alert(data.error || "Failed to delete user.");
+      }
+    } catch {
+      alert("Error deleting user.");
     }
   }
 
@@ -213,13 +234,22 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="py-3 px-5 text-gray-500">{u.created_at.slice(0, 10)}</td>
                     <td className="py-3 px-5 text-right">
-                      <Link
-                        href={`/admin/users/${u.id}`}
-                        className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1 font-bold text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
-                      >
-                        <span>View Detail</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/admin/users/${u.id}`}
+                          className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1 font-bold text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                        >
+                          <span>View Detail</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.full_name)}
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
+                          title={`Delete ${u.full_name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
