@@ -178,13 +178,165 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // 7. Fetch available learning programs
+    // 7. Fetch Student Programme Enrolments & Learning Modules Progress
+    let enrolledPrograms: any[] = [];
+    let myLearningPaths: any[] = [];
+    let completedModulesList: any[] = [];
+    let continueLearning: any = null;
+    let totalModulesAcrossEnrolled = 0;
+    let completedModulesAcrossEnrolled = 0;
+
+    if (supabase) {
+      // Fetch enrollments with programs, learning paths, and modules
+      const { data: enrollments } = await supabase
+        .from("program_enrollments")
+        .select("*, programs(*, learning_paths(*, learning_modules(*)))")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      // Fetch user's completed modules
+      const { data: userModuleProgress } = await supabase
+        .from("module_progress")
+        .select("*")
+        .eq("user_id", userId);
+
+      const completedModuleIds = new Set<string>();
+      const moduleProgressMap = new Map<string, any>();
+      (userModuleProgress || []).forEach((mp) => {
+        moduleProgressMap.set(mp.module_id, mp);
+        if (mp.status === "completed") {
+          completedModuleIds.add(mp.module_id);
+        }
+      });
+
+      enrolledPrograms = (enrollments || []).map((enr: any) => {
+        const prog = enr.programs;
+        if (!prog) return null;
+
+        const rawPaths = Array.isArray(prog.learning_paths) ? prog.learning_paths : [];
+        const activePaths = rawPaths
+          .filter((lp: any) => lp.status !== "draft" && lp.status !== "inactive")
+          .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+        let progTotalMods = 0;
+        let progCompletedMods = 0;
+
+        const transformedPaths = activePaths.map((lp: any) => {
+          const rawMods = Array.isArray(lp.learning_modules) ? lp.learning_modules : [];
+          const sortedMods = [...rawMods].sort(
+            (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0)
+          );
+
+          let pathCompleted = 0;
+          const mods = sortedMods.map((m: any, idx: number) => {
+            const isCompleted = completedModuleIds.has(m.id);
+            const progRecord = moduleProgressMap.get(m.id);
+
+            if (isCompleted) {
+              pathCompleted += 1;
+              completedModulesList.push({
+                id: m.id,
+                title: m.title,
+                pathTitle: lp.title,
+                programTitle: prog.title,
+                duration: m.estimated_duration || "45 mins",
+                completionDate: progRecord?.completion_date || progRecord?.updated_at || null,
+              });
+            } else if (!continueLearning) {
+              continueLearning = {
+                id: m.id,
+                title: m.title,
+                description: m.description,
+                duration: m.estimated_duration || "45 mins",
+                displayOrder: m.display_order ?? idx + 1,
+                pathId: lp.id,
+                pathTitle: lp.title,
+                programId: prog.id,
+                programTitle: prog.title,
+                learningObjectives: Array.isArray(m.learning_objectives) ? m.learning_objectives : [],
+                resourceUrl: m.resource_url || null,
+              };
+            }
+
+            return {
+              id: m.id,
+              title: m.title,
+              description: m.description,
+              displayOrder: m.display_order ?? idx + 1,
+              duration: m.estimated_duration || "45 mins",
+              isCompleted,
+            };
+          });
+
+          progTotalMods += mods.length;
+          progCompletedMods += pathCompleted;
+
+          const pathProgress =
+            mods.length > 0 ? Math.round((pathCompleted / mods.length) * 100) : 0;
+
+          const pathObj = {
+            id: lp.id,
+            programId: prog.id,
+            programTitle: prog.title,
+            title: lp.title,
+            description: lp.description,
+            domain: lp.domain || prog.domain || "General",
+            difficultyLevel: lp.difficulty_level || "Intermediate",
+            duration: lp.duration || "4 Weeks",
+            totalModules: mods.length,
+            completedModules: pathCompleted,
+            progress: pathProgress,
+          };
+
+          myLearningPaths.push(pathObj);
+          return pathObj;
+        });
+
+        totalModulesAcrossEnrolled += progTotalMods;
+        completedModulesAcrossEnrolled += progCompletedMods;
+
+        const calculatedProgress =
+          progTotalMods > 0
+            ? Math.round((progCompletedMods / progTotalMods) * 100)
+            : Number(enr.progress || 0);
+
+        return {
+          id: prog.id,
+          enrollmentId: enr.id,
+          title: prog.title,
+          description: prog.description,
+          domain: prog.domain || prog.category || "General",
+          difficultyLevel: prog.difficulty_level || "Intermediate",
+          duration: prog.duration || "6 Weeks",
+          status: enr.status || "enrolled",
+          progress: calculatedProgress,
+          totalModules: progTotalMods,
+          completedModules: progCompletedMods,
+          learningPathsCount: transformedPaths.length,
+          learningPaths: transformedPaths,
+        };
+      }).filter(Boolean);
+    }
+
+    const overallLearningProgress = {
+      enrolledCount: enrolledPrograms.length,
+      totalPaths: myLearningPaths.length,
+      totalModules: totalModulesAcrossEnrolled,
+      completedModules: completedModulesAcrossEnrolled,
+      overallProgress:
+        totalModulesAcrossEnrolled > 0
+          ? Math.round((completedModulesAcrossEnrolled / totalModulesAcrossEnrolled) * 100)
+          : 0,
+    };
+
+    // 8. Fetch active programmes available for exploration
     let availablePrograms: any[] = [];
     if (supabase) {
       const { data: dbPrograms } = await supabase
         .from("programs")
-        .select("*")
-        .eq("status", "active");
+        .select("id, title, description, domain, category, difficulty_level, duration, status")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
       if (dbPrograms) availablePrograms = dbPrograms;
     }
 
@@ -213,6 +365,12 @@ export async function GET(request: NextRequest) {
       inProgressSession: inProgressSessions[0] || null,
       recentSessions: completedSessions.slice(0, 5),
       availablePrograms,
+      // Enhanced Programme & Learning Path fields for student dashboard
+      enrolledPrograms,
+      myLearningPaths,
+      continueLearning,
+      completedModules: completedModulesList,
+      overallLearningProgress,
     });
   } catch (err: any) {
     console.error("User dashboard API error:", err);

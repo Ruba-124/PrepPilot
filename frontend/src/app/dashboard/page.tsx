@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import {
   LayoutDashboard,
-  BookOpen,
   GraduationCap,
   FileCheck,
   Award,
@@ -18,8 +17,11 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle2,
-  BarChart2,
   Clock,
+  Layers,
+  BookOpen,
+  PlayCircle,
+  Compass,
 } from "lucide-react";
 
 interface AreaToImprove {
@@ -49,6 +51,64 @@ interface InterviewHistoryItem {
   overallScore: number | null;
 }
 
+export interface EnrolledProgramItem {
+  id: string;
+  enrollmentId: string;
+  title: string;
+  description: string;
+  domain: string;
+  difficultyLevel: string;
+  duration: string;
+  status: string;
+  progress: number;
+  totalModules: number;
+  completedModules: number;
+  learningPathsCount: number;
+}
+
+export interface MyLearningPathItem {
+  id: string;
+  programId: string;
+  programTitle: string;
+  title: string;
+  description: string;
+  domain: string;
+  difficultyLevel: string;
+  duration: string;
+  totalModules: number;
+  completedModules: number;
+  progress: number;
+}
+
+export interface CompletedModuleItem {
+  id: string;
+  title: string;
+  pathTitle: string;
+  programTitle: string;
+  duration: string;
+  completionDate: string | null;
+}
+
+export interface ContinueLearningItem {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  displayOrder: number;
+  pathId: string;
+  pathTitle: string;
+  programId: string;
+  programTitle: string;
+}
+
+export interface OverallLearningProgress {
+  enrolledCount: number;
+  totalPaths: number;
+  totalModules: number;
+  completedModules: number;
+  overallProgress: number;
+}
+
 interface DashboardData {
   user: {
     id: string;
@@ -72,6 +132,12 @@ interface DashboardData {
   interviewHistory: InterviewHistoryItem[];
   inProgressSession: any | null;
   availablePrograms: any[];
+  // Learning & Programme System
+  enrolledPrograms?: EnrolledProgramItem[];
+  myLearningPaths?: MyLearningPathItem[];
+  continueLearning?: ContinueLearningItem | null;
+  completedModules?: CompletedModuleItem[];
+  overallLearningProgress?: OverallLearningProgress;
 }
 
 export default function UserDashboardPage() {
@@ -135,7 +201,6 @@ export default function UserDashboardPage() {
       ? data.user.fullName
       : clientUser || data?.user?.fullName || "Candidate";
 
-  const firstName = fullName.split(" ")[0] || "Candidate";
   const initials =
     fullName
       .split(" ")
@@ -159,7 +224,19 @@ export default function UserDashboardPage() {
   const scoreByCategory = data?.scoreByCategory || [];
   const interviewHistory = data?.interviewHistory || [];
   const inProgressSession = data?.inProgressSession;
-  const availablePrograms = data?.availablePrograms || [];
+
+  // Learning System Data
+  const enrolledPrograms = data?.enrolledPrograms || [];
+  const myLearningPaths = data?.myLearningPaths || [];
+  const continueLearning = data?.continueLearning || null;
+  const completedModules = data?.completedModules || [];
+  const overallLearningProgress = data?.overallLearningProgress || {
+    enrolledCount: 0,
+    totalPaths: 0,
+    totalModules: 0,
+    completedModules: 0,
+    overallProgress: 0,
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 flex flex-col md:flex-row">
@@ -214,7 +291,7 @@ export default function UserDashboardPage() {
           </p>
           <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/60 mb-2">
             <p className="text-xs font-extrabold text-slate-900 truncate">{fullName}</p>
-
+            <p className="text-[10px] font-semibold text-blue-600 truncate">{data?.user?.targetRole || "Learner"}</p>
           </div>
           <button
             onClick={handleSignOut}
@@ -261,7 +338,7 @@ export default function UserDashboardPage() {
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-6 bg-[#F8FAFC] flex flex-col gap-6 min-h-[calc(100vh-56px)]">
+        <main className="flex-1 p-4 sm:p-6 bg-[#F8FAFC] flex flex-col gap-6 min-h-[calc(100vh-56px)] max-w-7xl mx-auto w-full">
           {/* Greeting Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
             <div>
@@ -272,13 +349,16 @@ export default function UserDashboardPage() {
                 {data?.user?.targetRole ? (
                   <>Target Track: <strong className="text-blue-700 font-extrabold">{data.user.targetRole}</strong> · </>
                 ) : null}
-                Real Database Analytics Active
+                Real Supabase PostgreSQL Database Active
               </p>
             </div>
-            <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-xs self-start sm:self-auto flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Database Feed
-            </span>
+            <Link
+              href="/my-learning"
+              className="text-xs font-extrabold text-blue-700 bg-white border border-blue-200 px-3.5 py-1.5 rounded-xl shadow-xs self-start sm:self-auto flex items-center gap-1.5 hover:bg-blue-50 transition"
+            >
+              <GraduationCap className="w-4 h-4 text-blue-600" />
+              <span>Explore Programmes & Curriculum →</span>
+            </Link>
           </div>
 
           {/* Active Session Notice Card (if any) */}
@@ -298,6 +378,7 @@ export default function UserDashboardPage() {
                   </p>
                 </div>
               </div>
+
               <Link
                 href={`/interview/${inProgressSession.id}`}
                 className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl px-4 py-2 text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition self-start sm:self-auto"
@@ -308,9 +389,251 @@ export default function UserDashboardPage() {
             </div>
           )}
 
-          {/* SECTION 1: 4 Performance KPI Cards */}
+          {/* CONTINUE LEARNING BANNER (Section 6: Continue Learning) */}
+          {continueLearning && (
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 text-blue-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                  <PlayCircle className="w-3 h-3" />
+                  CONTINUE LEARNING
+                </span>
+                <h3 className="text-base font-black text-white mt-1">
+                  {continueLearning.title}
+                </h3>
+                <p className="text-xs text-blue-200">
+                  Programme: <strong>{continueLearning.programTitle}</strong> · Path: <strong>{continueLearning.pathTitle}</strong> · Duration: {continueLearning.duration}
+                </p>
+              </div>
+
+              <Link
+                href="/my-learning"
+                className="bg-white hover:bg-blue-50 text-blue-900 rounded-xl px-4 py-2 text-xs font-black flex items-center gap-1.5 shadow-xs transition self-start sm:self-auto shrink-0"
+              >
+                <PlayCircle className="w-4 h-4 text-blue-700" />
+                <span>Resume Module in My Learning →</span>
+              </Link>
+            </div>
+          )}
+
+          {/* OVERALL LEARNING PROGRESS & ENROLMENT METRICS (Section 6: Overall Learning Progress) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-[#F97316]" />
+                  Overall Learning Progress
+                </h2>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  Aggregate progress across all your enrolled career preparation programmes.
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-[#F97316]">
+                  {overallLearningProgress.overallProgress}%
+                </span>
+                <p className="text-[10px] font-bold text-slate-400">Completion Average</p>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-1.5">
+              <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/70">
+                <div
+                  style={{ width: `${Math.max(overallLearningProgress.overallProgress, 4)}%` }}
+                  className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-[#F97316] rounded-full transition-all duration-700"
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-1">
+                <span>
+                  <strong>{overallLearningProgress.completedModules}</strong> of{" "}
+                  <strong>{overallLearningProgress.totalModules}</strong> modules completed
+                </span>
+                <span>
+                  <strong>{overallLearningProgress.enrolledCount}</strong> enrolled programmes (
+                  <strong>{overallLearningProgress.totalPaths}</strong> roadmaps)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 6: MY ENROLLED PROGRAMMES */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  My Enrolled Programmes ({enrolledPrograms.length})
+                </h2>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  Programmes actively saved in Supabase database.
+                </p>
+              </div>
+              <Link
+                href="/my-learning"
+                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+              >
+                <span>Browse Catalog</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {enrolledPrograms.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center bg-slate-50/50">
+                <p className="text-xs font-semibold text-slate-500">
+                  You are not currently enrolled in any preparation programmes.
+                </p>
+                <Link
+                  href="/my-learning"
+                  className="inline-flex items-center gap-1.5 mt-2 px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-black hover:bg-blue-700 transition shadow-xs"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Explore & Enrol in Programmes</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {enrolledPrograms.map((prog) => (
+                  <div
+                    key={prog.id}
+                    className="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 hover:bg-white hover:border-blue-300 transition flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                          {prog.domain}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {prog.duration} · {prog.difficultyLevel}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm font-black text-slate-900 leading-snug">{prog.title}</h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {prog.description || "Structured roadmap with modules."}
+                      </p>
+
+                      <div className="pt-2 space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                          <span>Progress</span>
+                          <span className="text-blue-700 font-extrabold">{prog.progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            style={{ width: `${Math.max(prog.progress, 5)}%` }}
+                            className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60">
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        {prog.completedModules} / {prog.totalModules} modules
+                      </span>
+                      <Link
+                        href="/my-learning"
+                        className="text-xs font-black text-blue-700 hover:text-blue-900 flex items-center gap-1"
+                      >
+                        <span>Open Syllabus</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 6: MY LEARNING PATHS & COMPLETED MODULES (Two-column layout) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* My Learning Paths */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-indigo-600" />
+                    My Learning Paths ({myLearningPaths.length})
+                  </h2>
+                  <Link href="/my-learning" className="text-[11px] font-bold text-blue-600 hover:underline">
+                    View All
+                  </Link>
+                </div>
+
+                <div className="space-y-2.5">
+                  {myLearningPaths.length === 0 ? (
+                    <p className="text-xs font-semibold text-slate-400 py-6 text-center">
+                      No learning paths available yet. Enrol in a programme to activate roadmaps.
+                    </p>
+                  ) : (
+                    myLearningPaths.slice(0, 4).map((lp) => (
+                      <div
+                        key={lp.id}
+                        className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/70 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <h4 className="font-extrabold text-slate-900 truncate pr-2">{lp.title}</h4>
+                          <span className="font-black text-indigo-700 text-xs shrink-0">{lp.progress}%</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate">Programme: {lp.programTitle}</p>
+                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            style={{ width: `${Math.max(lp.progress, 5)}%` }}
+                            className="h-full bg-indigo-600 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Completed Modules */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Completed Modules ({completedModules.length})
+                  </h2>
+                  <Link href="/my-learning" className="text-[11px] font-bold text-blue-600 hover:underline">
+                    Track Modules
+                  </Link>
+                </div>
+
+                <div className="space-y-2">
+                  {completedModules.length === 0 ? (
+                    <p className="text-xs font-semibold text-slate-400 py-6 text-center">
+                      No modules completed yet. Go to <strong>My Learning</strong> and mark modules as completed as you study!
+                    </p>
+                  ) : (
+                    completedModules.slice(0, 4).map((mod, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-emerald-50/60 rounded-xl p-2.5 border border-emerald-100 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                            ✓
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-emerald-950 truncate">{mod.title}</p>
+                            <p className="text-[10px] text-emerald-700 truncate">{mod.pathTitle}</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-600 shrink-0">
+                          {mod.duration}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI INTERVIEW KPI METRICS (Preserved) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-            {/* Interviews Given */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col justify-between">
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
                 INTERVIEWS GIVEN
@@ -323,7 +646,6 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-            {/* Average Score */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col justify-between">
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
                 AVG SCORE
@@ -336,7 +658,6 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-            {/* Peak Score */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col justify-between">
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
                 PEAK SCORE
@@ -349,7 +670,6 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-            {/* Questions Done */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col justify-between">
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
                 QUESTIONS DONE
@@ -363,7 +683,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
-          {/* SECTION 2: Areas to Improve & Top Strengths */}
+          {/* AI INTERVIEW DIAGNOSTICS: Areas to Improve & Top Strengths (Preserved) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Areas to Improve */}
             <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between">
@@ -430,7 +750,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
-          {/* SECTION 3: Score by Category */}
+          {/* AI INTERVIEW: Score by Category (Preserved) */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs">
             <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4">
               SCORE BY CATEGORY
@@ -473,7 +793,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
-          {/* SECTION 4: Interview History */}
+          {/* AI INTERVIEW: Interview History (Preserved) */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-slate-900">
